@@ -6,6 +6,8 @@ namespace eval netflixrel {
     variable base_url "https://about.netflix.com/api/data/releases?language=en&country=ID&page=%d"
     variable max_items 10
     variable timeout 25
+	variable cooldown 60
+variable last_run
 }
 
 bind pub - !netflix netflixrel::cmd_netflix
@@ -212,8 +214,20 @@ proc netflixrel::collect_all_items {} {
 
 proc netflixrel::cmd_netflix {nick host hand chan text} {
     variable max_items
+	 variable cooldown
+    variable last_run
 
     set now [clock seconds]
+	if {[info exists last_run($chan)]} {
+        set diff [expr {$now - $last_run($chan)}]
+        if {$diff < $cooldown} {
+            set wait [expr {$cooldown - $diff}]
+            puthelp "NOTICE $nick :Tunggu $wait detik lagi!"
+            return 0
+        }
+    }
+
+    set last_run($chan) $now
     set today [clock format $now -format "%d %b %Y"]
 
     set items [collect_all_items]
